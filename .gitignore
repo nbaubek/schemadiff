@@ -1,0 +1,13 @@
+# Compiled binary (rebuild with `go build -o schemadiff .`)
+/schemadiff
+schemadiff.exe
+
+# Test/coverage artifacts
+*.test
+*.out
+coverage.txt
+
+# OS/editor cruft
+.DS_Store
+.idea/
+.vscode/

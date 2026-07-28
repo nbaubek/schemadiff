@@ -1,0 +1,3 @@
+id,name,active,legacy_flag
+1,alice,true,1
+2,bob,false,0
