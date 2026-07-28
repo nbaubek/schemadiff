@@ -14,10 +14,11 @@ go install github.com/nbaubek/schemadiff@latest
 ```
 
 This fetches the module, resolves and builds its dependencies (Cobra,
-parquet-go) using the checksums already pinned in `go.sum`, and installs
-the `schemadiff` binary to `$(go env GOPATH)/bin` (commonly `~/go/bin`).
-If that directory is on your `PATH`, you can then run `schemadiff`
-directly from anywhere -- no local copy of this repo needed.
+parquet-go, and the AWS SDK for S3 support) using the checksums already
+pinned in `go.sum`, and installs the `schemadiff` binary to
+`$(go env GOPATH)/bin` (commonly `~/go/bin`). If that directory is on
+your `PATH`, you can then run `schemadiff` directly from anywhere -- no
+local copy of this repo needed.
 
 **If you're developing on the project itself**, clone it and build
 locally instead:
@@ -56,23 +57,51 @@ Exit codes follow the `diff(1)` convention:
 - `1` — `diff` found schema differences (useful as a CI gate)
 - `2` — usage or runtime error (bad args, missing file, unrecognized format)
 
+Files may be local paths or `s3://bucket/key` URIs, and can be mixed:
+
+```
+schemadiff diff s3://my-bucket/old.csv new.parquet
+```
+
+**S3 authentication is entirely delegated to the AWS SDK's standard
+credential chain** (env vars, `~/.aws/credentials`, IAM role/SSO) -- the
+same one `aws-cli` itself uses. schemadiff has no credential flags of its
+own and never will; **if `aws s3 ls s3://your-bucket` already works in
+your terminal, `schemadiff` will too.**
+
+**Explicitly out of scope**, not just unimplemented: anonymous/public-bucket
+access without any credentials configured, VPC endpoint configuration,
+and cross-account role assumption beyond what the default credential
+chain already provides. These are real AWS auth topics with real
+complexity that a schema-diffing CLI has no business trying to solve
+generically -- see Known Limitations below.
+
 ## Example
 
 ```
 $ schemadiff diff old.csv new.csv
 Schema for old.csv:
-COLUMN       TYPE
-id           int
-name         string
-legacy_flag  int
+┌─────────────┬────────┐
+│ COLUMN      │ TYPE   │
+├─────────────┼────────┤
+│ id          │ int    │
+│ name        │ string │
+│ legacy_flag │ int    │
+└─────────────┴────────┘
 Schema for new.csv:
-COLUMN       TYPE
-id           int
-name         string
-signup_date  date
-STATUS  COLUMN       TYPE
-+       signup_date  date
--       legacy_flag  int
+┌─────────────┬────────┐
+│ COLUMN      │ TYPE   │
+├─────────────┼────────┤
+│ id          │ int    │
+│ name        │ string │
+│ signup_date │ date   │
+└─────────────┴────────┘
+┌────────┬─────────────┬────────┐
+│ STATUS │ COLUMN      │ TYPE   │
+├────────┼─────────────┼────────┤
+│ +      │ signup_date │ date   │
+│ -      │ legacy_flag │ int    │
+└────────┴─────────────┴────────┘
 ```
 
 `+`/`-`/`~` rows are colored green/red/yellow on a real terminal. Color is
@@ -94,14 +123,29 @@ of the same schema.
   metadata, including logical type annotations (Date/Timestamp), confirmed
   passing against real pyarrow-generated fixtures
 - `internal/report` — formats a single Schema or a DiffResult for
-  terminal output
+  terminal output (box-drawing tables + optional ANSI color)
+- `internal/s3source` — S3 URI parsing and the ranged-read `io.ReaderAt`
+  logic Parquet needs for random access; deliberately has ZERO AWS SDK
+  dependency, so it's fully unit-tested against an in-memory fake
+- `internal/s3source/awsobjectgetter` — the thin AWS SDK adapter
+  satisfying `s3source.ObjectGetter`; isolated in its own subpackage so
+  its (unverified-here) dependency can't break `s3source`'s tested core
 - `main.go` — Cobra command tree (`inspect`, `diff`); all real logic
   lives in plain functions (`run`, `loadSchema`, etc.) so it's testable
   without spawning the binary
 
 ## Status / known limitations
 
-- Local files only (no S3 yet — possible v2 extension)
+- S3 support: `inspect` and `diff` both accept `s3://` URIs anywhere a
+  local path is accepted, reading CSV and Parquet schemas with no
+  download-to-disk needed for either format (Parquet uses ranged reads
+  via `internal/s3source.ReaderAt`, tested against a fake in
+  `s3source_test.go`; see `internal/s3source/awsobjectgetter` for the
+  actual AWS SDK adapter, which -- like parquet-go before it -- could not
+  be built in the sandbox this was written in and needs local
+  verification against a real bucket you own). Explicitly NOT supported:
+  anonymous/public-bucket access, or any auth mechanism beyond the AWS
+  SDK's standard credential chain.
 - Parquet logical types (Date/Timestamp-annotated columns) are checked
   and mapped correctly in `mapType`, confirmed against real fixtures
   (`internal/parquetschema/testdata/new.parquet` for Date,

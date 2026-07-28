@@ -10,11 +10,8 @@
 package report
 
 import (
-	"bytes"
 	"fmt"
 	"io"
-	"strings"
-	"text/tabwriter"
 
 	"github.com/nbaubek/schemadiff/internal/schema"
 )
@@ -39,46 +36,37 @@ func colorize(useColor bool, code, s string) string {
 	return code + s + colorReset
 }
 
-// newTabwriter returns a tabwriter configured the same way everywhere in
-// this package, so every table in the tool lines up with the same
-// padding/alignment rules.
-func newTabwriter(w io.Writer) *tabwriter.Writer {
-	// minwidth=0, tabwidth=0, padding=2 spaces between columns, padchar=' ',
-	// no special flags -- the plainest column alignment tabwriter offers.
-	return tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-}
-
-// WriteSchema prints a single schema as an aligned COLUMN/TYPE table, for
-// the `inspect` command. label is a short name for the source (e.g. a
-// file path) shown in the header line.
+// WriteSchema prints a single schema as a bordered COLUMN/TYPE table
+// (DuckDB-style box-drawing), for the `inspect` command. label is a short
+// name for the source (e.g. a file path) shown in the header line.
 func WriteSchema(w io.Writer, label string, s schema.Schema) {
 	fmt.Fprintf(w, "Schema for %s:\n", label)
 
-	tw := newTabwriter(w)
-	fmt.Fprintln(tw, "COLUMN\tTYPE")
-	for _, col := range s.Columns {
-		fmt.Fprintf(tw, "%s\t%s\n", col.Name, col.Type)
+	rows := make([][]string, len(s.Columns))
+	for i, col := range s.Columns {
+		rows[i] = []string{col.Name, string(col.Type)}
 	}
-	tw.Flush()
+
+	for _, line := range buildTable([]string{"COLUMN", "TYPE"}, rows) {
+		fmt.Fprintln(w, line)
+	}
 }
 
-// Write prints a human-readable rendering of diff to w, as an aligned
-// STATUS/COLUMN/TYPE table with +/-/~ rows colored green/red/yellow when
-// useColor is true.
+// Write prints a human-readable rendering of diff to w, as a bordered
+// STATUS/COLUMN/TYPE table (DuckDB-style box-drawing) with +/-/~ rows
+// colored green/red/yellow when useColor is true.
 //
 // It takes an io.Writer (not necessarily os.Stdout) so this function is
 // testable by writing to a bytes.Buffer and inspecting the output, and so
 // main.go decides where the output actually goes.
 //
-// IMPORTANT: the table is formatted through tabwriter FIRST, entirely in
-// plain text, and only AFTER that is each finished line wrapped in a
-// color code. Coloring while tabwriter is still computing alignment
-// doesn't work: tabwriter counts every byte between tabs as visible
-// width, including invisible ANSI escape bytes, which throws off column
-// padding. Doing the two steps in this order -- align first, colorize
-// finished lines second -- sidesteps that entirely, since a fully-padded
-// line wrapped in a color code afterward doesn't get re-measured by
-// anything.
+// IMPORTANT: buildTable computes the entire table -- borders, padding,
+// everything -- from PLAIN text first. Only once that's finalized does
+// this function wrap specific already-aligned lines in a color code.
+// Coloring before alignment is computed doesn't work: any table renderer
+// (tabwriter or this hand-rolled one) counts every byte as visible width,
+// including invisible ANSI escape bytes, which throws off padding. Align
+// first, colorize finished lines second, always.
 func Write(w io.Writer, diff schema.DiffResult, useColor bool) {
 	if diff.Equal() {
 		fmt.Fprintln(w, "No schema differences found.")
@@ -93,40 +81,31 @@ func Write(w io.Writer, diff schema.DiffResult, useColor bool) {
 		fmt.Fprintln(w)
 	}
 
-	// rowColors[i] is the color for data row i (post-header), in the same
-	// order the rows are written below: all Added, then all Removed, then
-	// all Changed.
+	var rows [][]string
 	var rowColors []string
-	for range diff.Added {
+	for _, col := range diff.Added {
+		rows = append(rows, []string{"+", col.Name, string(col.Type)})
 		rowColors = append(rowColors, colorGreen)
 	}
-	for range diff.Removed {
+	for _, col := range diff.Removed {
+		rows = append(rows, []string{"-", col.Name, string(col.Type)})
 		rowColors = append(rowColors, colorRed)
 	}
-	for range diff.Changed {
+	for _, c := range diff.Changed {
+		rows = append(rows, []string{"~", c.Name, fmt.Sprintf("%s -> %s", c.TypeA, c.TypeB)})
 		rowColors = append(rowColors, colorYellow)
 	}
 
-	var plain bytes.Buffer
-	tw := newTabwriter(&plain)
-	fmt.Fprintln(tw, "STATUS\tCOLUMN\tTYPE")
-	for _, col := range diff.Added {
-		fmt.Fprintf(tw, "+\t%s\t%s\n", col.Name, col.Type)
-	}
-	for _, col := range diff.Removed {
-		fmt.Fprintf(tw, "-\t%s\t%s\n", col.Name, col.Type)
-	}
-	for _, c := range diff.Changed {
-		fmt.Fprintf(tw, "~\t%s\t%s -> %s\n", c.Name, c.TypeA, c.TypeB)
-	}
-	tw.Flush()
-
-	lines := strings.Split(strings.TrimRight(plain.String(), "\n"), "\n")
+	lines := buildTable([]string{"STATUS", "COLUMN", "TYPE"}, rows)
+	// lines[0:3] are top border/header/middle border, lines[len-1] is the
+	// bottom border -- only the data rows in between get colored, using
+	// the same order rows were appended above.
+	dataStart, dataEnd := 3, len(lines)-1
 	for i, line := range lines {
-		if i == 0 { // header row: never colored
-			fmt.Fprintln(w, line)
+		if i < dataStart || i >= dataEnd {
+			fmt.Fprintln(w, line) // borders/header: never colored
 			continue
 		}
-		fmt.Fprintln(w, colorize(useColor, rowColors[i-1], line))
+		fmt.Fprintln(w, colorize(useColor, rowColors[i-dataStart], line))
 	}
 }

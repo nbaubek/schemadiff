@@ -10,6 +10,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -21,6 +22,8 @@ import (
 	"github.com/nbaubek/schemadiff/internal/csvschema"
 	"github.com/nbaubek/schemadiff/internal/parquetschema"
 	"github.com/nbaubek/schemadiff/internal/report"
+	"github.com/nbaubek/schemadiff/internal/s3source"
+	"github.com/nbaubek/schemadiff/internal/s3source/awsobjectgetter"
 	"github.com/nbaubek/schemadiff/internal/schema"
 )
 
@@ -186,11 +189,18 @@ func resolveExplicitFormat(useCSV, useParquet bool) (string, error) {
 	}
 }
 
-// loadSchema reads path's schema. If formatOverride is "csv" or
-// "parquet", that reader is used directly (the `inspect` case). If
-// formatOverride is "", the format is detected from path's extension
-// (the `diff` case, so each of the two files can be a different format).
+// loadSchema reads path's schema. path may be a local filesystem path or
+// an "s3://bucket/key" URI -- ParseURI below is what tells them apart.
+//
+// If formatOverride is "csv" or "parquet", that reader is used directly
+// (the `inspect` case). If formatOverride is "", the format is detected
+// from the extension on path/key (the `diff` case, so each of the two
+// files/objects can be a different format).
 func loadSchema(path, formatOverride string) (schema.Schema, error) {
+	if bucket, key, ok := s3source.ParseURI(path); ok {
+		return loadSchemaFromS3(bucket, key, formatOverride)
+	}
+
 	format := formatOverride
 	if format == "" {
 		format = detectFormat(path)
@@ -209,6 +219,51 @@ func loadSchema(path, formatOverride string) (schema.Schema, error) {
 	default:
 		return schema.Schema{}, fmt.Errorf(
 			"unrecognized format for %q (use --csv/--parquet, or a .csv/.parquet extension)", path)
+	}
+}
+
+// loadSchemaFromS3 mirrors loadSchema's local-file logic exactly, just
+// swapping *os.File for an S3-backed reader/ReaderAt. csvschema and
+// parquetschema themselves don't change at all -- csvschema.InferSchema
+// already took a plain io.Reader, and parquetschema.InferSchemaFromReaderAt
+// (added alongside this) takes any io.ReaderAt, not specifically a file.
+//
+// Auth: NewAWSObjectGetter uses the AWS SDK's standard credential chain
+// (env vars, ~/.aws/credentials, IAM role/SSO) -- the same one `aws-cli`
+// itself uses. schemadiff does not implement or accept any credentials
+// of its own; if `aws s3 ls` already works in your terminal, this will
+// too. Anonymous/public-bucket access without credentials is NOT
+// supported -- see the README for why that's a deliberate scope cut, not
+// an oversight.
+func loadSchemaFromS3(bucket, key, formatOverride string) (schema.Schema, error) {
+	format := formatOverride
+	if format == "" {
+		format = detectFormat(key)
+	}
+	if format != "csv" && format != "parquet" {
+		return schema.Schema{}, fmt.Errorf(
+			"unrecognized format for s3://%s/%s (use --csv/--parquet, or a .csv/.parquet key extension)", bucket, key)
+	}
+
+	getter, err := awsobjectgetter.New(context.Background())
+	if err != nil {
+		return schema.Schema{}, err
+	}
+
+	switch format {
+	case "csv":
+		rc, err := s3source.OpenCSVReader(getter, bucket, key)
+		if err != nil {
+			return schema.Schema{}, err
+		}
+		defer rc.Close()
+		return csvschema.InferSchema(rc)
+	default: // "parquet"
+		readerAt, size, err := s3source.OpenParquetReaderAt(getter, bucket, key)
+		if err != nil {
+			return schema.Schema{}, err
+		}
+		return parquetschema.InferSchemaFromReaderAt(readerAt, size)
 	}
 }
 

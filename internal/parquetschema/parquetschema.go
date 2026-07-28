@@ -2,17 +2,17 @@
 // file's embedded metadata (no row scanning/inference needed, unlike CSV --
 // Parquet already carries its schema in the file footer).
 //
-// NOTE: this package depends on github.com/parquet-go/parquet-go, which
-// could not be fetched or compiled in the sandbox this was written in
-// (network egress restrictions blocked golang.org/x/sys, a transitive
-// dependency). Run `go get github.com/parquet-go/parquet-go@latest &&
-// go mod tidy` locally, then `go test ./...` to confirm this package
-// builds and behaves as intended -- treat it as a first draft to verify,
-// not confirmed-working code.
+// Confirmed working against real pyarrow-generated fixtures (see
+// testdata/ and parquetschema_test.go). InferSchemaFromReaderAt (added
+// for S3 support) has NOT been separately re-verified since the split --
+// it's the same logic InferSchema always used internally, just exposed
+// for reuse, so it should behave identically, but re-run `go test ./...`
+// after pulling this change to confirm.
 package parquetschema
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/parquet-go/parquet-go"
@@ -20,12 +20,16 @@ import (
 	"github.com/nbaubek/schemadiff/internal/schema"
 )
 
-// InferSchema reads path's Parquet metadata and returns its schema.
+// InferSchema reads path's Parquet metadata and returns its schema, for
+// LOCAL files.
 //
-// Unlike csvschema.InferSchema, this takes a file path rather than an
-// io.Reader: the parquet-go library needs an io.ReaderAt plus the file
-// size to seek to the footer, which *os.File provides but a generic
-// io.Reader does not, so opening the file is left to this function.
+// This is a thin wrapper around InferSchemaFromReaderAt: it just opens
+// the local file (satisfying io.ReaderAt via *os.File) and stats it for
+// the size, then hands off to the shared core. That split is what lets
+// S3 objects use the exact same schema-reading logic below, via
+// internal/s3source's ReaderAt instead of *os.File -- neither this
+// function nor InferSchemaFromReaderAt need to know or care which one
+// they were given.
 func InferSchema(path string) (schema.Schema, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -38,7 +42,16 @@ func InferSchema(path string) (schema.Schema, error) {
 		return schema.Schema{}, fmt.Errorf("stat parquet file: %w", err)
 	}
 
-	pf, err := parquet.OpenFile(f, stat.Size())
+	return InferSchemaFromReaderAt(f, stat.Size())
+}
+
+// InferSchemaFromReaderAt is the actual schema-reading logic, decoupled
+// from where the bytes come from. Any io.ReaderAt works here -- a local
+// *os.File (via InferSchema above) or an S3-backed reader (see
+// internal/s3source.ReaderAt) that turns each ReadAt into a ranged S3
+// GetObject, without ever downloading the whole object.
+func InferSchemaFromReaderAt(r io.ReaderAt, size int64) (schema.Schema, error) {
+	pf, err := parquet.OpenFile(r, size)
 	if err != nil {
 		return schema.Schema{}, fmt.Errorf("reading parquet metadata: %w", err)
 	}
