@@ -7,13 +7,29 @@ A CLI tool that inspects and compares the schemas of CSV and Parquet files.
 <div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>
 
 
-
 ## Installation
 
 ![Go version](https://img.shields.io/github/go-mod/go-version/nbaubek/schemadiff?style=for-the-badge&color=00ADD8&logo=go&logoColor=white)
 
-Requires Go 1.24+ (a Go 1.21+ toolchain will typically auto-fetch a newer
-one if needed, since that's driven by this module's `go.mod`).
+### Option 1: Prebuilt Binaries (No Go required)
+If you just want to use the tool without installing Go, download the compiled binary for your OS (`Linux`, `macOS / Darwin`, `Windows`) and architecture (`amd64`, `arm64`) directly from the [Releases](https://github.com/nbaubek/schemadiff/releases) page.
+
+#### Linux / macOS (`.tar.gz`):
+```bash
+# Example for Linux amd64 (adjust OS and architecture in the URL as needed)
+curl -L -O https://github.com/nbaubek/schemadiff/releases/latest/download/schemadiff_Linux_amd64.tar.gz
+tar -xzf schemadiff_Linux_amd64.tar.gz
+sudo mv schemadiff /usr/local/bin/
+```
+> **Note for macOS users:** If you get an "unidentified developer" block when running the binary, clear the quarantine flag by running: `xattr -d com.apple.quarantine /usr/local/bin/schemadiff`
+
+#### Windows (`.zip`):
+Download the matching `schemadiff_Windows_amd64.zip` or `schemadiff_Windows_arm64.zip` asset from the Releases page, extract `schemadiff.exe`, and move it to a folder on your system `PATH`.
+
+<div style="height: 2px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); margin: 25px 0;"></div>
+
+### Option 2: Using the Go Toolchain
+Requires Go 1.24+ (a Go 1.21+ toolchain will typically auto-fetch a newer one if needed, since that's driven by this module's `go.mod`).
 
 **If you just want to run it** (no cloning, no manual build):
 
@@ -21,23 +37,21 @@ one if needed, since that's driven by this module's `go.mod`).
 go install github.com/nbaubek/schemadiff@latest
 ```
 
-This fetches the module, resolves and builds its dependencies (Cobra,
-parquet-go, and the AWS SDK for S3 support) using the checksums already
-pinned in `go.sum`, and installs the `schemadiff` binary to
-`$(go env GOPATH)/bin` (commonly `~/go/bin`). If that directory is on
-your `PATH`, you can then run `schemadiff` directly from anywhere -- no
-local copy of this repo needed.
+This fetches the module, resolves and builds its dependencies (Cobra, parquet-go, and the AWS SDK for S3 support) using the checksums already pinned in `go.sum`, and installs the `schemadiff` binary to `$(go env GOPATH)/bin` (commonly `~/go/bin`). If that directory is on your `PATH`, you can then run `schemadiff` directly from anywhere—no local copy of this repo needed.
 
-**If you're developing on the project itself**, clone it and build
-locally instead:
+<div style="height: 2px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); margin: 25px 0;"></div>
 
-```
+### Option 3: Local Development
+**If you're developing on the project itself**, clone it and build locally instead:
+
+```bash
 git clone https://github.com/nbaubek/schemadiff.git
 cd schemadiff
 go mod tidy
 go build -o schemadiff .
 go test ./...
 ```
+
 
 <div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>
 
@@ -171,23 +185,15 @@ of the same schema.
   (`internal/parquetschema/testdata/new.parquet` for Date,
   `events.parquet` for Timestamp)
 - CSV type inference is intentionally not exhaustive (v1 scope)
-- Distribution today requires the user to have Go installed
-  (`go install ...`). Publishing prebuilt binaries via GitHub Releases
-  (e.g. with GoReleaser) would let people run this with no Go toolchain
-  at all -- a natural next step, not yet done
+- **Prebuilt binaries:** Tagged releases trigger automated builds via GoReleaser for Linux, macOS, and Windows (`amd64` and `arm64`), attached directly to GitHub Releases.
 
 <div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>
 
 ## Development notes
 
-This project was built with Claude (Anthropic) as a pairing/learning
-tool. Architecture and scope decisions -- package layout, the
-io.Reader/io.ReaderAt split between CSV and Parquet, cutting anonymous
-S3 access from scope, CSV-before-Parquet sequencing -- were made
-deliberately and reviewed by hand. Some first-draft code against
-libraries I hadn't used before (the Parquet metadata reader, the AWS S3
-adapter) needed local debugging against real files and real AWS
-infrastructure before it worked correctly -- that back-and-forth is
-visible in the commit history.
+This project was built with Claude (Anthropic) as a pairing/learning tool. Architecture and scope decisions - package layout, the `io.Reader/io.ReaderAt` split between CSV and Parquet, cutting anonymous S3 access from scope, CSV-before-Parquet sequencing - were made deliberately and reviewed by hand. 
+
+Some first-draft code against libraries I hadn't used before (the Parquet metadata reader, the AWS S3
+adapter) needed local debugging against real files and real AWS infrastructure before it worked correctly.
 
 <div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>

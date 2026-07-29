@@ -1,6 +1,7 @@
 # Compiled binary (rebuild with `go build -o schemadiff .`)
 /schemadiff
 schemadiff.exe
+schemadiff-*
 
 # Test/coverage artifacts
 *.test
