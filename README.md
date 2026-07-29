@@ -177,3 +177,17 @@ of the same schema.
   at all -- a natural next step, not yet done
 
 <div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>
+
+## Development notes
+
+This project was built with Claude (Anthropic) as a pairing/learning
+tool. Architecture and scope decisions -- package layout, the
+io.Reader/io.ReaderAt split between CSV and Parquet, cutting anonymous
+S3 access from scope, CSV-before-Parquet sequencing -- were made
+deliberately and reviewed by hand. Some first-draft code against
+libraries I hadn't used before (the Parquet metadata reader, the AWS S3
+adapter) needed local debugging against real files and real AWS
+infrastructure before it worked correctly -- that back-and-forth is
+visible in the commit history.
+
+<div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>
