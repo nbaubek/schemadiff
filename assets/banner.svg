@@ -1,0 +1,75 @@
+<svg viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg" font-family="SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace">
+  <defs>
+    <style>
+      .sans { font-family: 'Helvetica Neue', Arial, sans-serif; }
+      .cursor { animation: blink 1.1s steps(1) infinite; }
+      @keyframes blink { 50% { opacity: 0; } }
+    </style>
+  </defs>
+
+  <!-- Outer frame -->
+  <rect x="0" y="0" width="1200" height="300" fill="#0A0D12"/>
+
+  <!-- Left: wordmark block -->
+  <g>
+    <text x="44" y="108" font-size="19" letter-spacing="3" class="sans" fill="#6B7685">SCHEMA DIFFING FOR</text>
+    <text x="44" y="132" font-size="19" letter-spacing="3" class="sans" fill="#6B7685">CSV · PARQUET · S3</text>
+
+    <text x="42" y="188" font-size="52" font-weight="700" fill="#E7EBF2">schemadiff</text>
+    <rect x="368" y="153" width="14" height="40" fill="#7DD3E0" class="cursor"/>
+
+    <text x="44" y="234" font-size="15" fill="#4B5563">$ go install github.com/nbaubek/schemadiff@latest</text>
+  </g>
+
+  <!-- Right: terminal window mockup -->
+  <g>
+    <rect x="560" y="36" width="600" height="228" rx="10" fill="#12171F" stroke="#232A36" stroke-width="1.5"/>
+
+    <!-- title bar -->
+    <rect x="560" y="36" width="600" height="34" rx="10" fill="#171D26"/>
+    <rect x="560" y="58" width="600" height="12" fill="#171D26"/>
+    <circle cx="583" cy="53" r="5" fill="#2C3444"/>
+    <circle cx="602" cy="53" r="5" fill="#2C3444"/>
+    <circle cx="621" cy="53" r="5" fill="#2C3444"/>
+    <text x="860" y="58" font-size="12" fill="#4B5563" text-anchor="middle">schemadiff diff old.csv new.parquet</text>
+
+    <!-- prompt line -->
+    <text x="584" y="102" font-size="15" fill="#E7EBF2">
+      <tspan fill="#7DD3E0">$</tspan> schemadiff diff old.csv new.parquet
+    </text>
+
+    <!-- table -->
+    <g font-size="14">
+      <!-- outer border -->
+      <rect x="584" y="122" width="500" height="118" fill="none" stroke="#2C3444" stroke-width="1.5"/>
+      <!-- header separator -->
+      <line x1="584" y1="152" x2="1084" y2="152" stroke="#2C3444" stroke-width="1.5"/>
+      <!-- row separators -->
+      <line x1="584" y1="182" x2="1084" y2="182" stroke="#232A36" stroke-width="1"/>
+      <line x1="584" y1="211" x2="1084" y2="211" stroke="#232A36" stroke-width="1"/>
+      <!-- column separators -->
+      <line x1="654" y1="122" x2="654" y2="240" stroke="#2C3444" stroke-width="1.5"/>
+      <line x1="884" y1="122" x2="884" y2="240" stroke="#2C3444" stroke-width="1.5"/>
+
+      <!-- header -->
+      <text x="600" y="142" fill="#6B7685">STATUS</text>
+      <text x="670" y="142" fill="#6B7685">COLUMN</text>
+      <text x="900" y="142" fill="#6B7685">TYPE</text>
+
+      <!-- + row -->
+      <text x="600" y="171" fill="#4FD69C">+</text>
+      <text x="670" y="171" fill="#4FD69C">signup_date</text>
+      <text x="900" y="171" fill="#4FD69C">date</text>
+
+      <!-- - row -->
+      <text x="600" y="200" fill="#F0665B">-</text>
+      <text x="670" y="200" fill="#F0665B">legacy_flag</text>
+      <text x="900" y="200" fill="#F0665B">int</text>
+
+      <!-- ~ row -->
+      <text x="600" y="229" fill="#F2B84B">~</text>
+      <text x="670" y="229" fill="#F2B84B">id</text>
+      <text x="900" y="229" fill="#F2B84B">int → string</text>
+    </g>
+  </g>
+</svg>

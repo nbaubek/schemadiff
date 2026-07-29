@@ -1,15 +1,23 @@
-# schemadiff
+# Schemadiff
+
+![banner](assets/banner.svg)
 
 A CLI tool that inspects and compares the schemas of CSV and Parquet files.
 
+<div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>
+
+
+
 ## Installation
+
+![Go version](https://img.shields.io/github/go-mod/go-version/nbaubek/schemadiff?style=for-the-badge&color=00ADD8&logo=go&logoColor=white)
 
 Requires Go 1.24+ (a Go 1.21+ toolchain will typically auto-fetch a newer
 one if needed, since that's driven by this module's `go.mod`).
 
 **If you just want to run it** (no cloning, no manual build):
 
-```
+```bash
 go install github.com/nbaubek/schemadiff@latest
 ```
 
@@ -30,6 +38,9 @@ go mod tidy
 go build -o schemadiff .
 go test ./...
 ```
+
+<div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>
+
 
 ## Usage
 
@@ -76,6 +87,9 @@ chain already provides. These are real AWS auth topics with real
 complexity that a schema-diffing CLI has no business trying to solve
 generically -- see Known Limitations below.
 
+<div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>
+
+
 ## Example
 
 ```
@@ -113,6 +127,9 @@ If the two files share zero columns by name, a warning is printed first --
 that usually means two unrelated datasets were compared, not two versions
 of the same schema.
 
+<div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>
+
+
 ## Project layout
 
 - `internal/schema` — format-agnostic Schema/Column model, ColumnType
@@ -133,6 +150,9 @@ of the same schema.
 - `main.go` — Cobra command tree (`inspect`, `diff`); all real logic
   lives in plain functions (`run`, `loadSchema`, etc.) so it's testable
   without spawning the binary
+
+<div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>
+
 
 ## Status / known limitations
 
@@ -155,3 +175,5 @@ of the same schema.
   (`go install ...`). Publishing prebuilt binaries via GitHub Releases
   (e.g. with GoReleaser) would let people run this with no Go toolchain
   at all -- a natural next step, not yet done
+
+<div style="height: 3px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); box-shadow: 0px 2px 8px rgba(0, 198, 255, 0.5); margin: 30px 0;"></div>
