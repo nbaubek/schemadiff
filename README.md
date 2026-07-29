@@ -14,16 +14,19 @@ A CLI tool that inspects and compares the schemas of CSV and Parquet files.
 ### Option 1: Prebuilt Binaries (No Go required)
 If you just want to use the tool without installing Go, download the compiled binary for your OS (`Linux`, `macOS / Darwin`, `Windows`) and architecture (`amd64`, `arm64`) directly from the [Releases](https://github.com/nbaubek/schemadiff/releases) page.
 
-#### Linux / macOS (`.tar.gz`):
+#### Linux / macOS:
+
+Go to Releases page and download an executable you need, then run these commands:
+
 ```bash
-# Example for Linux amd64 (adjust OS and architecture in the URL as needed)
-curl -L -O https://github.com/nbaubek/schemadiff/releases/latest/download/schemadiff_Linux_amd64.tar.gz
-tar -xzf schemadiff_Linux_amd64.tar.gz
+# Rename your executable to "schemadiff" for these commands to work:
+chmod +x schemadiff
 sudo mv schemadiff /usr/local/bin/
 ```
 > **Note for macOS users:** If you get an "unidentified developer" block when running the binary, clear the quarantine flag by running: `xattr -d com.apple.quarantine /usr/local/bin/schemadiff`
 
-#### Windows (`.zip`):
+#### Windows (`.exe`):
+
 Download the matching `schemadiff_Windows_amd64.zip` or `schemadiff_Windows_arm64.zip` asset from the Releases page, extract `schemadiff.exe`, and move it to a folder on your system `PATH`.
 
 <div style="height: 2px; width: 100%; background: linear-gradient(to right, #00c6ff, #0072ff); margin: 25px 0;"></div>
